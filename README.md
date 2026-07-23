@@ -164,16 +164,11 @@ Logout + Redirect to Login
 
 ## Dashboard
 
-Save your screenshot inside:
+![Dashboard](./screenshots/landing.png)
 
-```
-screenshots/
-└── dashboard.png
-```
+## Output
 
-Then GitHub will automatically display it.
-
-![Dashboard](./screenshots/dashboard.png)
+![Output](./screenshots/dashboard.png)
 
 ---
 
@@ -194,12 +189,6 @@ Install project dependencies:
 
 ```bash
 npm install
-```
-
-Install OGL for the particle animation:
-
-```bash
-npm install ogl
 ```
 
 ---
