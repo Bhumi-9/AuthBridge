@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JWT Auth Flow & Silent Refresh Testbed | Interactive Demo</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Top Navigation Bar -->
+    <header class="app-header">
+        <div class="logo">
+            <span class="shield-icon">🛡️</span>
+            <span class="logo-title">JWT Silent Auth Engine</span>
+            <span class="badge badge-tech">DummyJSON API</span>
+        </div>
+
+        <nav class="nav-links">
+            <button class="nav-btn active" data-target="login" id="nav-login">Login</button>
+            <button class="nav-btn" data-target="dashboard" id="nav-dashboard">Dashboard</button>
+            <button class="nav-btn" data-target="profile" id="nav-profile">Profile</button>
+        </nav>
+
+        <div class="header-actions">
+            <label class="toggle-container" title="Enables 10-second token lifespan to test rapid refresh and queuing">
+                <input type="checkbox" id="sim-mode-toggle">
+                <span class="toggle-slider"></span>
+                <span class="toggle-label">Rapid Test Mode (10s Expiry)</span>
+            </label>
+            <div id="user-pill" class="user-pill hidden">
+                <img id="user-avatar" src="" alt="Avatar">
+                <span id="user-name">User</span>
+                <button id="btn-logout" class="btn-logout-sm">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- Sidebar / Token & Queue Monitor -->
+        <aside class="sidebar-monitor">
+            <div class="monitor-card">
+                <h3>Token & Session Monitor</h3>
+                <div class="status-indicator">
+                    <span class="status-dot" id="auth-status-dot"></span>
+                    <span id="auth-status-text" class="status-text">Unauthenticated</span>
+                </div>
+
+                <div class="monitor-metric">
+                    <label>Access Token Status</label>
+                    <div class="metric-value" id="token-expiry-timer">No Active Token</div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" id="token-timer-fill"></div>
+                    </div>
+                </div>
+
+                <div class="monitor-metric">
+                    <label>Refresh Lock State</label>
+                    <div id="refresh-lock-badge" class="status-badge badge-idle">Idle (No Refresh in-flight)</div>
+                </div>
+
+                <div class="monitor-metric">
+                    <label>Queued Requests in-flight</label>
+                    <div class="queue-badge"><span id="queue-count">0</span> queued requests</div>
+                </div>
+
+                <div class="token-inspector">
+                    <label>Access Token Payload (Decoded)</label>
+                    <pre id="token-payload" class="code-box">Log in to view decoded JWT</pre>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="content-body">
+            <!-- VIEW: LOGIN -->
+            <section id="view-login" class="view-panel active">
+                <div class="card login-card">
+                    <div class="card-header">
+                        <h2>Sign In</h2>
+                        <p class="subtitle">Authenticate with DummyJSON JWT endpoints</p>
+                    </div>
+
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label for="username">Username</label>
+                            <input type="text" id="username" value="emilys" required autocomplete="username">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" value="emilyspass" required autocomplete="current-password">
+                        </div>
+
+                        <button type="submit" id="btn-submit-login" class="btn btn-primary btn-full">
+                            <span>Sign In to Auth Engine</span>
+                        </button>
+                    </form>
+
+                    <div class="quick-credentials">
+                        <small>Default test credentials: <code>emilys</code> / <code>emilyspass</code></small>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: DASHBOARD -->
+            <section id="view-dashboard" class="view-panel hidden">
+                <div class="dashboard-grid">
+                    <!-- Welcome Card -->
+                    <div class="card welcome-card">
+                        <div class="welcome-header">
+                            <img id="dash-avatar" src="" alt="User Avatar" class="avatar-lg">
+                            <div>
+                                <h2>Welcome, <span id="dash-name">User</span>!</h2>
+                                <p class="text-muted" id="dash-email">email@example.com</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Evaluation Testbed Controls -->
+                    <div class="card testbed-card">
+                        <h3>⚡ PDF Requirements Test Suite</h3>
+                        <p class="subtitle">Interactively trigger stress tests to verify queueing, single refresh lock, and teardown.</p>
+                        
+                        <div class="testbed-actions">
+                            <div class="action-item">
+                                <button id="btn-test-parallel" class="btn btn-action">
+                                    <span>🚀 Fire 5 Parallel Requests</span>
+                                </button>
+                                <small>Simulates 5 concurrent calls when token is expired to test queueing & <strong>1 refresh call</strong> constraint.</small>
+                            </div>
+
+                            <div class="action-item">
+                                <button id="btn-force-expire" class="btn btn-warning">
+                                    <span>⏳ Force Token Expiration</span>
+                                </button>
+                                <small>Sets access token expiration time to 0s to trigger silent refresh on next call.</small>
+                            </div>
+
+                            <div class="action-item">
+                                <button id="btn-test-401" class="btn btn-action">
+                                    <span>⚠️ Simulate 401 Interceptor Retry</span>
+                                </button>
+                                <small>Fires request with invalid token to test reactive 401 interceptor auto-refresh.</small>
+                            </div>
+
+                            <div class="action-item">
+                                <button id="btn-test-midflight-logout" class="btn btn-danger">
+                                    <span>💥 Mid-Flight Request + Logout</span>
+                                </button>
+                                <small>Sends 3s delayed API call and immediately logs out to test <strong>AbortController teardown</strong>.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Protected Data Fetcher -->
+                    <div class="card data-card">
+                        <div class="card-header-flex">
+                            <h3>Protected API Data (`/auth/me`)</h3>
+                            <button id="btn-fetch-me" class="btn btn-secondary btn-sm">Fetch Authenticated Data</button>
+                        </div>
+                        <pre id="api-output" class="code-box">Click "Fetch Authenticated Data" to test bearer token call.</pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIEW: PROFILE -->
+            <section id="view-profile" class="view-panel hidden">
+                <div class="card profile-card">
+                    <h2>Protected User Profile</h2>
+                    <p class="subtitle">This route checks authentication and silently refreshes token before rendering.</p>
+                    <div id="profile-details" class="profile-details-grid">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Live Event Activity Log Console -->
+            <section class="console-section">
+                <div class="console-header">
+                    <div class="console-title">
+                        <span class="terminal-dot red"></span>
+                        <span class="terminal-dot yellow"></span>
+                        <span class="terminal-dot green"></span>
+                        <span>Engine Terminal Log</span>
+                    </div>
+                    <button id="btn-clear-log" class="btn-text">Clear Console</button>
+                </div>
+                <div id="console-logs" class="console-body">
+                    <div class="log-line info">[SYSTEM] Engine initialized. Ready for authentication.</div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script type="module" src="app.js"></script>
+</body>
+</html>
