@@ -112,9 +112,6 @@ AUTHBRIDGE/
 │   ├── main.jsx
 │   └── index.css
 │
-├── build_and_run.ps1
-├── httplib.h
-├── server.cpp
 ├── index.html
 ├── package.json
 ├── package-lock.json
